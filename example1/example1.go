@@ -22,12 +22,6 @@ const (
 	timeoutSec   = 10
 )
 
-/*
-dd if=/dev/zero of=1m bs=1M count=1
-dd if=/dev/zero of=10M bs=1M count=10
-dd if=/dev/zero of=100M bs=1M count=100
-dd if=/dev/zero of=200M bs=1M count=200
-*/
 var files = []string{"1M", "10M", "100M", "200M"}
 
 func putS3ObjectWithContext(ctx context.Context, file string) error {
