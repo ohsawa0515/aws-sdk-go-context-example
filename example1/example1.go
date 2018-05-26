@@ -8,6 +8,8 @@ import (
 
 	"path/filepath"
 
+	"flag"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -16,12 +18,14 @@ import (
 )
 
 const (
-	testdataPath = "../testdata"
-	region       = "ap-northeast-1"
-	s3Bucket     = "sdk-go-test"
-	timeoutSec   = 10
+	testdataPath      = "../testdata"
+	DefaultS3Bucket   = "sdk-go-test"
+	DefaultRegion     = "ap-northeast-1"
+	DefaultTimeoutSec = 10
 )
 
+var region, s3Bucket string
+var timeoutSec int
 var files = []string{"1M", "10M", "100M", "200M"}
 
 func putS3ObjectWithContext(ctx context.Context, file string) error {
@@ -49,9 +53,9 @@ func putS3ObjectWithContext(ctx context.Context, file string) error {
 		})
 	}); err != nil {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == request.CanceledErrorCode {
-			fmt.Fprintf(os.Stderr, "upload canceled due to timeout, %v\n", err)
+			return fmt.Errorf("upload canceled due to timeout, %v\n", err)
 		} else {
-			fmt.Fprintf(os.Stderr, "failed to upload object, %v\n", err)
+			return fmt.Errorf("failed to upload object, %v\n", err)
 		}
 	}
 
@@ -60,11 +64,16 @@ func putS3ObjectWithContext(ctx context.Context, file string) error {
 }
 
 func main() {
-	// Serial execution
+
+	flag.StringVar(&s3Bucket, "b", DefaultS3Bucket, "Bucket name")
+	flag.StringVar(&region, "r", DefaultRegion, "Region")
+	flag.IntVar(&timeoutSec, "t", DefaultTimeoutSec, "Timeout")
+	flag.Parse()
+
 	for _, file := range files {
 		filePath := filepath.Join(testdataPath, file)
 		fmt.Printf("upload %s...\n", filePath)
-		ctx, cancel := context.WithTimeout(context.Background(), timeoutSec*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSec)*time.Second)
 		defer cancel()
 
 		if err := putS3ObjectWithContext(ctx, filePath); err != nil {
